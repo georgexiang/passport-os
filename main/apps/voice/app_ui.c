@@ -74,8 +74,9 @@ void app_ui_render(const app_ui_snapshot_t *snap){
     }
     char timer[20];unsigned sec=snap->elapsed_ms/1000;snprintf(timer,sizeof(timer),"%02u:%02u",sec/60,sec%60);ui_pixel_label_set_text(s_elapsed,timer);
     lv_obj_set_y(s_state,channel?100:recording?197:188);
-    const char *state=snap->init_failed?"语音启动失败":!snap->link_up?"等待电脑连接":channel?"麦克风未就绪":recording?"正在传音":snap->toast[0]?snap->toast:snap->net_busy?"网络不稳":"可以说话了";
+    const char *state=snap->init_failed?"语音启动失败":!snap->link_up?"等待电脑连接":channel?"麦克风未就绪":recording?"正在传音":snap->toast[0]?snap->toast:snap->net_busy?"网络不稳":snap->cursor_mode?"光标模式":"可以说话了";
     ui_pixel_label_set_text(s_state,state);ui_pixel_text_color(s_state,channel?UI_DANGER:!ready||snap->net_busy?UI_WARNING:UI_TEXT);
-    ui_pixel_label_set_text(s_help,snap->init_failed?"长按确定返回后重试":!snap->link_up?(snap->elapsed_ms>=10000?"需与电脑在同一 Wi-Fi":"启动电脑端转发器"):recording?"松开上键结束":snap->net_busy?"靠近路由器后重试":"对着设备麦克风说话");
-    ui_pixel_label_set_text(s_keys[1],recording?"松开结束":"按住说话");
+    ui_pixel_label_set_text(s_help,snap->init_failed?"长按确定返回后重试":!snap->link_up?(snap->elapsed_ms>=10000?"需与电脑在同一 Wi-Fi":"启动电脑端转发器"):recording?"松开上键结束":snap->net_busy?"靠近路由器后重试":snap->cursor_mode?"单击确定回到语音":"单击确定切换光标");
+    ui_pixel_label_set_text(s_keys[1],snap->cursor_mode?"左移/长按行首":recording?"松开结束":"按住说话");
+    ui_pixel_label_set_text(s_keys[3],snap->cursor_mode?"右移/长按行尾":"回车/长按撤销");
 }
