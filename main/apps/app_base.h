@@ -23,6 +23,7 @@ typedef enum {
     APP_ID_SOUND_JUMP,
     APP_ID_MUSE,
     APP_ID_POMODORO,
+    APP_ID_PROXY,
     APP_ID_COUNT
 } passport_app_id_t;
 

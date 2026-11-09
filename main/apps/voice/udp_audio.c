@@ -54,6 +54,9 @@ static uint32_t s_audio_drops = 0;
 static uint32_t s_event_drops = 0;
 static volatile uint32_t s_beacon_cnt = 0;   // 链路诊断:收到 beacon 总数
 static volatile uint32_t s_ping_cnt = 0;     // 链路诊断:发出 ping 总数
+static volatile udp_audio_event_handler_t s_event_handler = NULL;  // 复用通道的应用
+
+void udp_audio_set_event_handler(udp_audio_event_handler_t handler) { s_event_handler = handler; }
 
 // ---- 内部工具 ----
 
@@ -207,8 +210,11 @@ static void rx_task(void *arg)
                 if (plen > APP_PROTO_RX_CAP) plen = APP_PROTO_RX_CAP;   // 截断防御
                 memcpy(json, rx + 1, plen);
                 json[plen] = '\0';
+                udp_audio_event_handler_t h = s_event_handler;
                 app_event_t ev;
-                if (app_protocol_parse(json, plen, &ev)) {
+                if (h) {
+                    h(json, plen);   // 复用通道的应用自己解析
+                } else if (app_protocol_parse(json, plen, &ev)) {
                     app_protocol_dispatch_event(&ev);   // 审批重要投递,其余零阻塞
                 } else {
                     ESP_LOGW(TAG, "下行 JSON 拒绝: %.*s",

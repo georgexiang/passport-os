@@ -51,6 +51,8 @@ idf_component_register(
         "apps/voice/ui_pixel_math.c"
         "apps/voice/mode.c"
         "apps/voice/nvs_settings.c"
+        "apps/proxy/app_proxy.cc"
+        "apps/proxy/proxy_core.c"
         "apps/xiaozhi/xiaozhi_protocol.cc"
         "apps/xiaozhi/xiaozhi_audio.cc"
         "apps/xiaozhi/xiaozhi_ui.cc"
