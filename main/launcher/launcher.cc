@@ -263,6 +263,19 @@ void draw_app_icon(passport_app_id_t id, uint32_t color) {
             set_part(8, 58, 34, 10, 10, color);
             set_part(9, 40, 58, 38, 10, color);       // I 长条
             break;
+        case APP_ID_PROXY:
+            // 代理开关:一个源节点分出三条线路(规则/全局/直连),
+            // 中间那条是当前线路 —— 实心目标块 + 暖色高亮。
+            set_part(0, 8, 38, 14, 12, color);        // 源节点(电脑)
+            set_part(1, 22, 42, 14, 4, color);        // 主干
+            set_part(2, 36, 16, 4, 56, color);        // 分叉竖杆
+            set_part(3, 40, 16, 20, 4, detail);       // 上支路
+            set_part(4, 40, 42, 20, 4, warm);         // 中支路(当前)
+            set_part(5, 40, 68, 20, 4, detail);       // 下支路
+            set_frame(6, 60, 10, 18, 16, detail, 4);  // 上目标
+            set_part(7, 60, 36, 18, 16, warm);        // 中目标(选中)
+            set_frame(8, 60, 62, 18, 16, detail, 4);  // 下目标
+            break;
         default:
             break;
     }
