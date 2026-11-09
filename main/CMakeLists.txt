@@ -1,9 +1,3 @@
-option(PASSPORT_MUSE_USE_JOLLYBOT "Build Muse with the official Jollybot artwork" ON)
-if(PASSPORT_MUSE_USE_JOLLYBOT)
-    set(PASSPORT_MUSE_AVATAR "apps/muse/muse_avatar_frames.c")
-else()
-    set(PASSPORT_MUSE_AVATAR "apps/muse/muse_avatar_public_frames.c")
-endif()
 idf_component_register(
     EMBED_TXTFILES "apps/home/phone_setup.html"
     EMBED_FILES "apps/home/cities.json.gz"
@@ -79,8 +73,6 @@ idf_component_register(
         "apps/pomodoro/app_pomodoro.cc"
         "apps/pomodoro/pomodoro_font_20.c"
         "apps/pomodoro/pomodoro_digits_48.c"
-        "apps/muse/app_muse.cc"
-        "${PASSPORT_MUSE_AVATAR}"
         "apps/game/tetris_core.c"
         "apps/game/app_tetris.cc"
     INCLUDE_DIRS
