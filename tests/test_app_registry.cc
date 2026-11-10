@@ -11,7 +11,7 @@ static void key(uint8_t,app_btn_event_t,uint16_t){++keys;if(key_opens_launcher)a
 static passport_app_t app(passport_app_id_t id){passport_app_t a{};a.id=id;a.name="test";a.start=start;a.stop=stop;a.on_key=key;a.prepare_stop=prepare;return a;}
 const passport_app_t g_radio_app=app(APP_ID_RADIO),g_voice_app=app(APP_ID_VOICE),g_xiaozhi_app=app(APP_ID_XIAOZHI),
  g_wifi_app=app(APP_ID_WIFI),g_settings_app=app(APP_ID_SETTINGS),g_home_app=app(APP_ID_HOME),g_game_app=app(APP_ID_GAME),
- g_tetris_app=app(APP_ID_TETRIS),g_stopwatch_app=app(APP_ID_STOPWATCH),g_sound_jump_app=app(APP_ID_SOUND_JUMP),g_muse_app=app(APP_ID_MUSE),g_pomodoro_app=app(APP_ID_POMODORO);
+ g_tetris_app=app(APP_ID_TETRIS),g_stopwatch_app=app(APP_ID_STOPWATCH),g_sound_jump_app=app(APP_ID_SOUND_JUMP),g_orca_app=app(APP_ID_ORCA),g_pomodoro_app=app(APP_ID_POMODORO),g_away_app=app(APP_ID_AWAY);
 void launcher_ui_show(){start();} void launcher_ui_hide(){stop();}
 void launcher_ui_on_key(uint8_t,app_btn_event_t){++keys;}
 bool wifi_setup_can_leave(){return mock_setup;}
@@ -131,7 +131,7 @@ int main(){
  // Clean launch: heavy apps start in place while the heap fits them, however
  // often they are re-entered; light apps never restart.
  app_registry_switch_to(APP_ID_HOME);assert(mock_restarts==0);
- app_registry_switch_to(APP_ID_MUSE);assert(app_registry_get_active()==APP_ID_MUSE&&mock_restarts==0);
+ app_registry_switch_to(APP_ID_XIAOZHI);assert(app_registry_get_active()==APP_ID_XIAOZHI&&mock_restarts==0);
  app_registry_switch_to(APP_ID_HOME);app_registry_switch_to(APP_ID_XIAOZHI);
  app_registry_switch_to(APP_ID_HOME);app_registry_switch_to(APP_ID_RADIO);
  assert(app_registry_get_active()==APP_ID_RADIO&&mock_restarts==0);
@@ -163,12 +163,12 @@ int main(){
  assert(mock_restarts==2);
  // Total free is checked as well as the largest block.
  mock_largest=40000;mock_free=40*1024;
- try{app_registry_switch_to(APP_ID_MUSE);assert(false);}catch(const MockRestart&){}
+ try{app_registry_switch_to(APP_ID_XIAOZHI);assert(false);}catch(const MockRestart&){}
  assert(mock_restarts==3);
  // The boot after a clean launch never restarts again, even if the heap is short.
- s_clean_launch[0]=kCleanLaunchMagic;s_clean_launch[1]=APP_ID_MUSE^kCleanLaunchMagic;
- assert(app_registry_take_clean_launch()==APP_ID_MUSE);
- app_registry_switch_to(APP_ID_MUSE);assert(app_registry_get_active()==APP_ID_MUSE&&mock_restarts==3);
+ s_clean_launch[0]=kCleanLaunchMagic;s_clean_launch[1]=APP_ID_XIAOZHI^kCleanLaunchMagic;
+ assert(app_registry_take_clean_launch()==APP_ID_XIAOZHI);
+ app_registry_switch_to(APP_ID_XIAOZHI);assert(app_registry_get_active()==APP_ID_XIAOZHI&&mock_restarts==3);
  mock_largest=40000;mock_free=100000;
  mock_active=nullptr;for(auto *p:mock_screens)delete p;mock_screens.clear();
  delete s_switch_mutex;delete s_display_awake_lock;

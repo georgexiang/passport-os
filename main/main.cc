@@ -301,10 +301,10 @@ static void handle_serial_command(int c) {
         app_registry_switch_to(APP_ID_SOUND_JUMP);
     } else if (c == 't') {
         app_registry_switch_to(APP_ID_POMODORO);
-    } else if (c == 'm') {
-        app_registry_switch_to(APP_ID_MUSE);
-    } else if (c == 'M') {
-        if (app_registry_get_active() == APP_ID_MUSE) passport_muse_diagnostic_ble_cycle();
+    } else if (c == 'a') {
+        app_registry_switch_to(APP_ID_ORCA);
+    } else if (c == 'w') {
+        app_registry_switch_to(APP_ID_AWAY);
     } else if (c == '?') {
         passport_muse_log_diagnostics();
     } else if (c >= '1' && c <= '9') {

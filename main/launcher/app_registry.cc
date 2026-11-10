@@ -38,8 +38,9 @@ extern const passport_app_t g_game_app;
 extern const passport_app_t g_tetris_app;
 extern const passport_app_t g_stopwatch_app;
 extern const passport_app_t g_sound_jump_app;
-extern const passport_app_t g_muse_app;
+extern const passport_app_t g_orca_app;
 extern const passport_app_t g_pomodoro_app;
+extern const passport_app_t g_away_app;
 
 namespace {
 
@@ -51,7 +52,8 @@ const passport_app_t *s_apps[] = {
     &g_radio_app,
     &g_voice_app,
     &g_xiaozhi_app,
-    &g_muse_app,
+    &g_orca_app,
+    &g_away_app,
     &g_game_app,
     &g_sound_jump_app,
     &g_tetris_app,
@@ -63,7 +65,8 @@ const passport_app_t *s_apps[] = {
 constexpr size_t kAppCount = sizeof(s_apps) / sizeof(s_apps[0]);
 bool feedback_allowed(passport_app_id_t id) {
     return id == APP_ID_HOME || id == APP_ID_LAUNCHER || id == APP_ID_SETTINGS ||
-           id == APP_ID_WIFI || id == APP_ID_STOPWATCH || id == APP_ID_POMODORO || id == APP_ID_TETRIS;
+           id == APP_ID_WIFI || id == APP_ID_STOPWATCH || id == APP_ID_POMODORO || id == APP_ID_TETRIS ||
+           id == APP_ID_AWAY;   // 离席哨:离开时有未读要响铃提醒
 }
 std::atomic<passport_app_id_t> s_active_id{APP_ID_LAUNCHER};
 wake_gate_t s_wake_gate{};
@@ -97,7 +100,6 @@ WifiPowerSaveLevel power_save_level_for(passport_app_id_t id) {
         case APP_ID_RADIO:
         case APP_ID_VOICE:
         case APP_ID_XIAOZHI:
-        case APP_ID_MUSE:
             return WifiPowerSaveLevel::BALANCED;
         default:
             return WifiPowerSaveLevel::LOW_POWER;
@@ -122,7 +124,6 @@ HeapNeed heap_need(passport_app_id_t id) {
     switch (id) {
         case APP_ID_RADIO: return {24 * 1024, 48 * 1024};
         case APP_ID_XIAOZHI: return {16 * 1024, 44 * 1024};
-        case APP_ID_MUSE: return {20 * 1024, 44 * 1024};
         default: return {0, 0};
     }
 }
@@ -135,7 +136,7 @@ bool s_heap_strained = false;
 bool s_fresh_heap = false;
 
 bool heavy_app(passport_app_id_t id) {
-    return id == APP_ID_RADIO || id == APP_ID_XIAOZHI || id == APP_ID_MUSE;
+    return id == APP_ID_RADIO || id == APP_ID_XIAOZHI;
 }
 
 // 在旧应用 stop() 之后调用:此时测到的才是新应用可用的堆。
