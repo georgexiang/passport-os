@@ -32,6 +32,10 @@ done
 "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -Imain \
     tests/test_stopwatch.c main/apps/stopwatch/stopwatch_core.c -o "$test_dir/stopwatch"
 "$test_dir/stopwatch"
+"${CC:-cc}" -std=c11 -w -c tests/vendor/cjson/cJSON.c -o "$test_dir/cjson.o"
+"${CC:-cc}" -std=c11 -Wall -Wextra -Werror -fsanitize=undefined -g -Imain -Itests/vendor/cjson \
+    tests/test_proxy_core.c main/apps/proxy/proxy_core.c "$test_dir/cjson.o" -o "$test_dir/proxy-core"
+"$test_dir/proxy-core"
 python3 tests/test_wifi_configure.py
 python3 tests/test_wifi_internet.py
 "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -g -Imain \

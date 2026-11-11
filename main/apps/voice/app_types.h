@@ -13,6 +13,11 @@ extern "C" {
 typedef enum {
     APP_KEY_ENTER = 0,   // 输入框回车(提交)
     APP_KEY_CLEAR,       // 清空输入框全部文字
+    APP_KEY_UNDO,        // 撤销上一句(电脑端 ⌘Z)
+    APP_KEY_LEFT,        // 光标模式:左移一个字
+    APP_KEY_RIGHT,       // 光标模式:右移一个字
+    APP_KEY_HOME,        // 光标模式:行首
+    APP_KEY_END,         // 光标模式:行尾
 } app_key_action_t;
 
 // ---------------- 状态 ----------------
@@ -206,6 +211,7 @@ typedef struct {
     bool           screen_on;
     bool           panel_on;      // 面板供电(SLPIN 断电后 false)
     bool           net_busy;      // 音频丢帧中 → BUSY 横幅
+    bool           cursor_mode;   // 单击确定切换:上下键移动电脑光标,不录音
     bool           ble_connected; // BLE 连接是否建立(未订阅时图标灰色)
     char           link_name[8];  // 当前链路通道名:"BLE"/"USB"(断线横幅按此渲染)
     bool           battery_available;

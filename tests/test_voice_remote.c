@@ -42,11 +42,30 @@ int main(void) {
     ev(APP_EV_KEY_RELEASE,APP_BTN_DOWN,2900,1006); assert(count==0);
     ev(APP_EV_KEY_CLICK,APP_BTN_DOWN,2900,1007);
     assert(count==1 && actions[0].type==APP_ACT_SEND_KEY_ACTION && actions[0].u.key_action.action==APP_KEY_ENTER);
-    for(int b=0;b<3;b++) {
-        if(b==APP_BTN_DOWN)continue;
-        ev(APP_EV_KEY_CLICK,b,2900,1010); assert(count==0);
-        ev(APP_EV_KEY_LONG,b,15,1020); assert(count==0);
-    }
+    // Voice mode: UP click / UP long / OK long send nothing (OK long is the registry's "back").
+    ev(APP_EV_KEY_CLICK,APP_BTN_UP,2900,1010); assert(count==0);
+    ev(APP_EV_KEY_LONG,APP_BTN_UP,15,1020); assert(count==0);
+    ev(APP_EV_KEY_LONG,APP_BTN_OK,15,1021); assert(count==0);
+    // DOWN long = undo.
+    ev(APP_EV_KEY_LONG,APP_BTN_DOWN,1060,1022);
+    assert(count==1 && actions[0].type==APP_ACT_SEND_KEY_ACTION && actions[0].u.key_action.action==APP_KEY_UNDO);
+    // OK click toggles cursor mode: UP/DOWN click = left/right, long = home/end, UP press no longer records.
+    ev(APP_EV_KEY_CLICK,APP_BTN_OK,2900,1030); assert(count==0 && s.cursor_mode);
+    ev(APP_EV_KEY_PRESS,APP_BTN_UP,15,1031); assert(count==0 && s.state==APP_ST_READY);
+    ev(APP_EV_KEY_CLICK,APP_BTN_UP,2900,1032);
+    assert(count==1 && actions[0].u.key_action.action==APP_KEY_LEFT);
+    ev(APP_EV_KEY_CLICK,APP_BTN_DOWN,2900,1033);
+    assert(count==1 && actions[0].u.key_action.action==APP_KEY_RIGHT);
+    ev(APP_EV_KEY_LONG,APP_BTN_UP,15,1034);
+    assert(count==1 && actions[0].u.key_action.action==APP_KEY_HOME);
+    ev(APP_EV_KEY_LONG,APP_BTN_DOWN,1060,1035);
+    assert(count==1 && actions[0].u.key_action.action==APP_KEY_END);
+    app_ui_snapshot_t cur; app_state_snapshot(&s,1036,&cur); assert(cur.cursor_mode);
+    ev(APP_EV_KEY_CLICK,APP_BTN_OK,2900,1040); assert(count==0 && !s.cursor_mode);
+    // Cursor keys respect PC readiness too.
+    ev(APP_EV_KEY_CLICK,APP_BTN_OK,2900,1041); pc(false,true,1042);
+    ev(APP_EV_KEY_CLICK,APP_BTN_UP,2900,1043); assert(count==0);
+    pc(true,true,1044); ev(APP_EV_KEY_CLICK,APP_BTN_OK,2900,1045); assert(!s.cursor_mode);
     ev(APP_EV_AGENT_STATUS,0,0,1100); assert(s.state==APP_ST_READY && count==0);
     ev(APP_EV_APPROVAL_REQUEST,0,0,1101); assert(s.state==APP_ST_READY && count==0);
     ev(APP_EV_TRANSCRIPT,0,0,1102); assert(s.state==APP_ST_READY && count==0);

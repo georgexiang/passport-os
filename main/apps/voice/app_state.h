@@ -13,6 +13,7 @@ typedef struct {
     bool screen_on;
     bool panel_on;
     bool stream_started;
+    bool cursor_mode;
     uint64_t pc_status_ms;
     uint64_t state_since_ms;
     uint64_t toast_until_ms;

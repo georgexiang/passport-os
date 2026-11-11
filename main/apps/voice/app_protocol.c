@@ -215,10 +215,15 @@ size_t app_protocol_device_status(char *buf, size_t cap, uint32_t drop_count) {
 }
 
 size_t app_protocol_key_action(char *buf, size_t cap, app_key_action_t action) {
+    static const char *const names[] = {
+        [APP_KEY_ENTER] = "enter", [APP_KEY_CLEAR] = "clear", [APP_KEY_UNDO] = "undo",
+        [APP_KEY_LEFT] = "left", [APP_KEY_RIGHT] = "right",
+        [APP_KEY_HOME] = "home", [APP_KEY_END] = "end",
+    };
+    if ((unsigned)action >= sizeof(names) / sizeof(names[0])) return 0;
     cJSON *o = cJSON_CreateObject();
     cJSON_AddStringToObject(o, "event", "key.action");
-    cJSON_AddStringToObject(o, "action",
-                            action == APP_KEY_CLEAR ? "clear" : "enter");
+    cJSON_AddStringToObject(o, "action", names[action]);
     size_t n = serialize(o, buf, cap);
     cJSON_Delete(o);
     return n;

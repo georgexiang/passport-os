@@ -1,4 +1,5 @@
 // WeType remote: UP records, DOWN sends Enter after recognition.
+// OK click toggles cursor mode: UP/DOWN move the PC cursor instead of recording.
 #include "app_state.h"
 #include <stdio.h>
 #include <string.h>
@@ -7,6 +8,14 @@
 #define UP_PRESS_MAX_MV 400u
 static void emit(app_action_t *out, uint8_t *n, app_action_type_t type) {
     if (*n < APP_ACT_MAX) out[(*n)++] = (app_action_t){ .type = type };
+}
+static void toast(app_state_t *s, uint64_t now, const char *msg) {
+    snprintf(s->toast, sizeof(s->toast), "%s", msg);
+    s->toast_until_ms = now + 1500;
+}
+static void send_key(app_action_t *out, uint8_t *n, app_key_action_t action) {
+    if (*n < APP_ACT_MAX) out[(*n)++] = (app_action_t){.type = APP_ACT_SEND_KEY_ACTION,
+        .u.key_action.action = (uint8_t)action};
 }
 static void end_voice(app_state_t *s, uint64_t now, bool cancel, app_action_t *out, uint8_t *n) {
     if (s->state != APP_ST_LISTENING) return;
@@ -31,6 +40,7 @@ void app_state_snapshot(const app_state_t *s, uint64_t now, app_ui_snapshot_t *s
     snap->screen_on = s->screen_on;
     snap->panel_on = s->panel_on;
     snap->net_busy = s->net_busy;
+    snap->cursor_mode = s->cursor_mode;
     snap->elapsed_ms = (uint32_t)(now - s->state_since_ms);
     snprintf(snap->link_name, sizeof(snap->link_name), "WiFi");
     if (now < s->toast_until_ms) snprintf(snap->toast, sizeof(snap->toast), "%s", s->toast);
@@ -59,7 +69,7 @@ void app_state_reduce(app_state_t *s, const app_event_t *ev, uint64_t now, app_a
         break;
     case APP_EV_KEY_PRESS:
         // ADC guard rejects cross-key ghosts. A fresh press is required after failures.
-        if (ev->u.key.btn == APP_BTN_UP && ev->u.key.mv <= UP_PRESS_MAX_MV &&
+        if (ev->u.key.btn == APP_BTN_UP && ev->u.key.mv <= UP_PRESS_MAX_MV && !s->cursor_mode &&
             s->state == APP_ST_READY && s->link_up && s->pc_ready) {
             s->state = APP_ST_LISTENING;
             s->state_since_ms = now;
@@ -76,12 +86,29 @@ void app_state_reduce(app_state_t *s, const app_event_t *ev, uint64_t now, app_a
     case APP_EV_KEY_CLICK:
         // CLICK is emitted once on a short press. Never send while still recording
         // or after the PC heartbeat expires. Release ADC readings are not key IDs.
-        if (ev->u.key.btn == APP_BTN_DOWN && s->state == APP_ST_READY &&
-            s->link_up && s->pc_ready) {
-            out[(*n)++] = (app_action_t){.type = APP_ACT_SEND_KEY_ACTION,
-                .u.key_action.action = APP_KEY_ENTER};
-            snprintf(s->toast, sizeof(s->toast), "已发送回车");
-            s->toast_until_ms = now + 1500;
+        if (s->state != APP_ST_READY) break;
+        if (ev->u.key.btn == APP_BTN_OK) {  // OK long press stays the registry's global "back"
+            s->cursor_mode = !s->cursor_mode;
+            toast(s, now, s->cursor_mode ? "光标模式" : "语音模式");
+            break;
+        }
+        if (!s->link_up || !s->pc_ready) break;
+        if (s->cursor_mode) {
+            if (ev->u.key.btn == APP_BTN_UP) send_key(out, n, APP_KEY_LEFT);
+            else if (ev->u.key.btn == APP_BTN_DOWN) send_key(out, n, APP_KEY_RIGHT);
+        } else if (ev->u.key.btn == APP_BTN_DOWN) {
+            send_key(out, n, APP_KEY_ENTER);
+            toast(s, now, "已发送回车");
+        }
+        break;
+    case APP_EV_KEY_LONG:
+        if (s->state != APP_ST_READY || !s->link_up || !s->pc_ready) break;
+        if (s->cursor_mode) {
+            if (ev->u.key.btn == APP_BTN_UP) { send_key(out, n, APP_KEY_HOME); toast(s, now, "行首"); }
+            else if (ev->u.key.btn == APP_BTN_DOWN) { send_key(out, n, APP_KEY_END); toast(s, now, "行尾"); }
+        } else if (ev->u.key.btn == APP_BTN_DOWN) {
+            send_key(out, n, APP_KEY_UNDO);
+            toast(s, now, "已撤销");
         }
         break;
     case APP_EV_AUDIO_ERROR:

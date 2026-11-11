@@ -38,8 +38,8 @@ extern const passport_app_t g_game_app;
 extern const passport_app_t g_tetris_app;
 extern const passport_app_t g_stopwatch_app;
 extern const passport_app_t g_sound_jump_app;
-extern const passport_app_t g_muse_app;
 extern const passport_app_t g_pomodoro_app;
+extern const passport_app_t g_proxy_app;
 
 namespace {
 
@@ -50,8 +50,8 @@ namespace {
 const passport_app_t *s_apps[] = {
     &g_radio_app,
     &g_voice_app,
+    &g_proxy_app,
     &g_xiaozhi_app,
-    &g_muse_app,
     &g_game_app,
     &g_sound_jump_app,
     &g_tetris_app,
