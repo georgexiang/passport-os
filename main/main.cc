@@ -235,7 +235,12 @@ static void system_monitor_task(void *arg) {
 }
 
 static void handle_serial_command(int c) {
-    if (c == 'u' || c == 'U' || c == '+') {
+    if (c == 'U') {
+        // 调试用:长按上键(「代理开关」用它切换 Wi-Fi/蓝牙)
+        ESP_LOGI(TAG, "[SerialCmd] LONG UP button triggered");
+        KeyMessage msg = {.button = BSP_BTN_UP, .event = BTN_EVT_LONG, .mv = 15};
+        app_registry_dispatch_key(msg.button, msg.event, msg.mv);
+    } else if (c == 'u' || c == '+') {
         ESP_LOGI(TAG, "[SerialCmd] UP (+) button clicked");
         KeyMessage msg = {.button = BSP_BTN_UP, .event = BTN_EVT_CLICK, .mv = 15};
         app_registry_dispatch_key(msg.button, msg.event, msg.mv);
@@ -305,6 +310,8 @@ static void handle_serial_command(int c) {
         app_registry_switch_to(APP_ID_ORCA);
     } else if (c == 'w') {
         app_registry_switch_to(APP_ID_AWAY);
+    } else if (c == 'x') {
+        app_registry_switch_to(APP_ID_PROXY);
     } else if (c == '?') {
         passport_muse_log_diagnostics();
     } else if (c >= '1' && c <= '9') {

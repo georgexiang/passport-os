@@ -1,5 +1,9 @@
 // main/apps/proxy/app_proxy.cc —— 「代理开关」:查看/控制 Mac 上的 mihomo。
-// 通道复用随身语音的 Wi-Fi UDP 33333(udp_audio),Mac 端是 Passport Voice。
+// 通道二选一(和「离席哨」「Orca 看板」共用同一个选择,记在 NVS):
+//   Wi-Fi  复用随身语音的 UDP 33333(udp_audio)
+//   蓝牙   共用的 BLE 服务 Passport-Link(link_ble.h),Mac 直连,不需要同一个路由器
+// Mac 端都是 Passport Voice,消息格式完全一样。
+// 按键:上下选模式 · 确定切换/启动 · 长按下键停止 · 长按上键切换 Wi-Fi/蓝牙
 // 纯逻辑在 proxy_core.c;本文件只做生命周期、按键映射和 LVGL 界面。
 //
 // 线程:
@@ -9,6 +13,7 @@
 #include "apps/app_base.h"
 #include "apps/proxy/proxy_core.h"
 #include "apps/voice/udp_audio.h"
+#include "apps/link/link_ble.h"
 #include "launcher/app_registry.h"
 #include "bsp_display.h"
 #include "bsp_battery.h"
@@ -31,12 +36,13 @@ proxy_remote_t s_inbox;
 bool s_inbox_full = false;
 uint64_t s_last_query_ms = 0;
 bool s_transport_ok = false;
+bool s_ble = false;            // 当前通道:false = Wi-Fi UDP,true = 蓝牙
 
 lv_obj_t *s_screen;
 lv_timer_t *s_timer;
-lv_obj_t *s_link, *s_badge, *s_badge_cn, *s_badge_en, *s_run, *s_rates, *s_sys;
+lv_obj_t *s_badge, *s_badge_cn, *s_badge_en, *s_run, *s_rates, *s_sys;
 lv_obj_t *s_choices[PROXY_MODE_COUNT];
-lv_obj_t *s_notice, *s_footer;
+lv_obj_t *s_notice, *s_footer, *s_mode;
 lv_obj_t *s_wifi_bars[3];
 ui_pixel_battery_t s_battery{};
 uint64_t s_status_updated_us;
@@ -62,10 +68,35 @@ void on_udp_event(const char *json, size_t len) {
     portEXIT_CRITICAL(&s_inbox_mux);
 }
 
+// 链路是否连着:Wi-Fi 看 udp_audio 的对端判活;蓝牙看 Mac 是否已连上并订阅
+bool link_up() {
+    if (!s_transport_ok) return false;
+    return s_ble ? link_ble_connected() : udp_audio_connected();
+}
+
+// ---- 通道开关 ----
+bool transport_open() {
+    if (s_ble) return link_ble_start(on_udp_event);
+    udp_audio_set_event_handler(on_udp_event);   // 先挂 handler 再开 socket
+    if (udp_audio_init() == 0) return true;
+    udp_audio_set_event_handler(nullptr);
+    return false;
+}
+void transport_close() {
+    if (s_ble) {
+        link_ble_stop();
+    } else {
+        udp_audio_deinit();                      // deinit 已等 RX 任务退出,再摘 handler
+        udp_audio_set_event_handler(nullptr);
+    }
+}
+
 void send_request(proxy_req_t req, proxy_mode_t mode) {
     char buf[96];
     size_t n = proxy_build_request(buf, sizeof(buf), req, mode);
-    if (n && udp_audio_notify_event(buf, n) != 0) ESP_LOGW(TAG, "请求发送失败: %.*s", (int)n - 1, buf);
+    if (!n) return;
+    const bool ok = s_ble ? link_ble_send(buf, n) : udp_audio_notify_event(buf, n) == 0;
+    if (!ok) ESP_LOGW(TAG, "请求发送失败: %.*s", (int)n - 1, buf);
 }
 
 lv_obj_t *label(lv_obj_t *parent, const char *text, const lv_font_t *font, uint32_t color,
@@ -82,10 +113,12 @@ void render() {
     if (!s_screen) return;
     const proxy_state_t &s = s_state;
     const proxy_remote_t &r = s.remote;
-    const bool link = s_transport_ok && udp_audio_connected();
+    const bool link = link_up();
 
-    ui_pixel_label_set_text(s_link, !s_transport_ok ? "通道失败" : link ? "已连接" : "未连接");
-    ui_pixel_text_color(s_link, link ? UI_SUCCESS : UI_TEXT_DIM);
+    // 顶栏只放一个通道标签(右侧是电池):绿 = 已连接,灰 = 未连接,红 = 通道启动失败
+    ui_pixel_label_set_text(s_mode, s_ble ? "蓝牙" : "Wi-Fi");
+    ui_pixel_text_color(s_mode, !s_transport_ok ? UI_DANGER : link ? UI_SUCCESS : UI_TEXT_DIM);
+    for (lv_obj_t *b : s_wifi_bars) if (b) lv_obj_set_flag(b, LV_OBJ_FLAG_HIDDEN, s_ble);
 
     // 大色块:当前模式
     const bool known = link && s.have_remote && r.running;
@@ -97,7 +130,8 @@ void render() {
     // 运行状态 / 速度
     char line[64], up[20], down[20];
     if (!link) {
-        ui_pixel_label_set_text(s_run, "打开 Mac 上的 Passport Voice");
+        ui_pixel_label_set_text(s_run, !s_transport_ok ? (s_ble ? "蓝牙启动失败 · 长按上键换 Wi-Fi" : "请先连接 Wi-Fi")
+                                : s_ble ? "蓝牙广播中 · 等 Passport Voice" : "打开 Mac 上的 Passport Voice");
         ui_pixel_label_set_text(s_rates, "");
     } else if (!s.have_remote) {
         ui_pixel_label_set_text(s_run, "等待 mihomo 状态…");
@@ -152,7 +186,7 @@ void render() {
     ui_pixel_label_set_text(s_notice, notice);
     ui_pixel_text_color(s_notice, notice_col);
 
-    const char *action = !link || !s.have_remote ? "长按确定返回"
+    const char *action = !link || !s.have_remote ? (s_ble ? "长按上键:换 Wi-Fi" : "长按上键:换蓝牙")
                        : r.running ? "上下选择 · 长按下键停止"
                                    : "按确定 启动 mihomo";
     ui_pixel_label_set_text(s_footer, action);
@@ -184,7 +218,7 @@ void tick(lv_timer_t *) {
     if (got) proxy_apply_remote(&s_state, &r);
     proxy_tick(&s_state, now);
     // 刚连上但还没收到状态:每 2s 主动问一次
-    if (s_transport_ok && udp_audio_connected() && !s_state.have_remote &&
+    if (link_up() && !s_state.have_remote &&
         now - s_last_query_ms >= 2000) {
         s_last_query_ms = now;
         send_request(PROXY_REQ_QUERY, PROXY_MODE_RULE);
@@ -203,7 +237,8 @@ void build_ui() {
     lv_obj_t *name = ui_pixel_label(top, "代理开关", &buddy_font_16, UI_TEXT);
     lv_obj_align(name, LV_ALIGN_LEFT_MID, 42, 0);
     s_battery = ui_pixel_battery_create(top, 206, 6, UI_TEXT, &lv_font_montserrat_14);
-    s_link = label(top, "", &buddy_font_16, UI_TEXT_DIM, 120, 4, 82, 20, LV_TEXT_ALIGN_RIGHT);
+    // 通道标签:"Wi-Fi" / "蓝牙"(蓝牙模式下隐藏信号格)
+    s_mode = label(top, "", &buddy_font_16, UI_TEXT_DIM, 116, 4, 56, 20, LV_TEXT_ALIGN_LEFT);
 
     // 大色块
     s_badge = lv_obj_create(s_screen);
@@ -250,10 +285,9 @@ void start() {
     s_last_query_ms = 0;
     s_status_updated_us = 0;
 
-    // 通道:先挂 handler 再开 socket,首条下行就不会落到语音解析
-    udp_audio_set_event_handler(on_udp_event);
-    s_transport_ok = udp_audio_init() == 0;
-    if (!s_transport_ok) ESP_LOGE(TAG, "UDP 通道启动失败");
+    s_ble = link_ble_mode();
+    s_transport_ok = transport_open();
+    if (!s_transport_ok) ESP_LOGE(TAG, "%s 通道启动失败", s_ble ? "BLE" : "UDP");
 
     if (!bsp_lvgl_lock(1000)) return;
     if (!s_screen) {
@@ -263,7 +297,7 @@ void start() {
         s_timer = lv_timer_create(tick, 200, nullptr);
     }
     bsp_lvgl_unlock();
-    ESP_LOGI(TAG, "started; transport=%d", s_transport_ok);
+    ESP_LOGI(TAG, "started; %s=%d", s_ble ? "ble" : "udp", s_transport_ok);
 }
 
 void stop() {
@@ -272,16 +306,36 @@ void stop() {
         if (s_timer) { lv_timer_delete(s_timer); s_timer = nullptr; }
         if (s_screen) { lv_obj_delete(s_screen); s_screen = nullptr; }
         s_wifi_bars[0] = s_wifi_bars[1] = s_wifi_bars[2] = nullptr;
+        s_mode = nullptr;
         s_battery = {};
         bsp_lvgl_unlock();
     }
-    udp_audio_deinit();
-    udp_audio_set_event_handler(nullptr);
+    transport_close();
     s_transport_ok = false;
     ESP_LOGI(TAG, "stopped");
 }
 
+// 长按上键:换通道。先关旧的(释放内存),再开新的;Mac 那边的 mihomo 不受影响。
+void switch_transport() {
+    transport_close();
+    s_ble = !s_ble;
+    link_ble_set_mode(s_ble);
+    s_transport_ok = transport_open();
+    // 换了通道就当作重新连接:清掉旧状态,tick 会主动 query
+    if (bsp_lvgl_lock(500)) {
+        proxy_state_init(&s_state);
+        s_last_query_ms = 0;
+        bsp_lvgl_unlock();
+    }
+    ESP_LOGI(TAG, "transport -> %s (%s)", s_ble ? "BLE" : "Wi-Fi", s_transport_ok ? "ok" : "failed");
+}
+
 void on_key(uint8_t btn, app_btn_event_t event, uint16_t) {
+    if (btn == BSP_BTN_UP && event == BTN_EVT_LONG) {
+        switch_transport();   // 不持 LVGL 锁:关 NimBLE 要等它的任务退出
+        if (bsp_lvgl_lock(500)) { render(); bsp_lvgl_unlock(); }
+        return;
+    }
     proxy_key_t key;
     if (event == BTN_EVT_CLICK && btn == BSP_BTN_UP) key = PROXY_KEY_UP_CLICK;
     else if (event == BTN_EVT_CLICK && btn == BSP_BTN_DOWN) key = PROXY_KEY_DOWN_CLICK;
@@ -291,7 +345,7 @@ void on_key(uint8_t btn, app_btn_event_t event, uint16_t) {
     if (!bsp_lvgl_lock(500)) return;
     if (s_screen) {
         proxy_mode_t mode = PROXY_MODE_RULE;
-        const bool link = s_transport_ok && udp_audio_connected();
+        const bool link = link_up();
         proxy_req_t req = proxy_on_key(&s_state, key, link, now_ms(), &mode);
         if (req != PROXY_REQ_NONE) {
             ESP_LOGI(TAG, "request %d mode=%s", (int)req, proxy_mode_key(mode));
