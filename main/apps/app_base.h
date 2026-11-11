@@ -21,9 +21,10 @@ typedef enum {
     APP_ID_TETRIS,
     APP_ID_STOPWATCH,
     APP_ID_SOUND_JUMP,
-    APP_ID_MUSE,
+    APP_ID_ORCA,
     APP_ID_POMODORO,
     APP_ID_PROXY,
+    APP_ID_AWAY,
     APP_ID_COUNT
 } passport_app_id_t;
 

@@ -59,7 +59,7 @@ int udp_audio_notify_event(const char *line, size_t len);
 int udp_audio_notify_event_blocking(const char *line, size_t len, uint32_t timeout_ms);
 
 // ---- 复用通道 ----
-// 其他应用(如「代理开关」)复用本通道时设置:下行 EVENT 行交给 handler,
+// 其他应用(「代理开关」「Orca 看板」「离席哨」)复用本通道时设置:下行 EVENT 行交给 handler,
 // 不再走语音的 app_protocol 解析。handler 在 RX 任务里调用,必须非阻塞。
 // 传 NULL 恢复语音默认处理。须在 udp_audio_init() 前设置、deinit() 后清除。
 typedef void (*udp_audio_event_handler_t)(const char *json, size_t len);
