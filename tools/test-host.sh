@@ -36,6 +36,12 @@ done
 "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -fsanitize=undefined -g -Imain -Itests/vendor/cjson \
     tests/test_proxy_core.c main/apps/proxy/proxy_core.c "$test_dir/cjson.o" -o "$test_dir/proxy-core"
 "$test_dir/proxy-core"
+"${CC:-cc}" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -g -Imain -Itests/vendor/cjson \
+    tests/test_orca_core.c main/apps/orca/orca_core.c "$test_dir/cjson.o" -o "$test_dir/orca-core"
+"${CC:-cc}" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -g -Imain -Itests/vendor/cjson \
+    tests/test_away_core.c main/apps/away/away_core.c "$test_dir/cjson.o" -o "$test_dir/away-core"
+"$test_dir/away-core"
+"$test_dir/orca-core"
 python3 tests/test_wifi_configure.py
 python3 tests/test_wifi_internet.py
 "${CC:-cc}" -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -g -Imain \

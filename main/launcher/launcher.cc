@@ -183,14 +183,25 @@ void draw_app_icon(passport_app_id_t id, uint32_t color) {
             set_part(5, 38, 4, 12, 6, detail);      // 天线头
             set_part(6, 26, 64, 36, 6, warm);     // 围巾
             break;
-        case APP_ID_MUSE:
-                set_frame(0, 18, 18, 52, 46, color, 4);
-                set_part(1, 29, 31, 6, 12, color);
-                set_part(2, 53, 31, 6, 12, color);
-                set_part(3, 36, 53, 16, 4, color);
-                set_part(4, 6, 34, 8, 20, color);
-                set_part(5, 74, 34, 8, 20, color);
-                break;
+        case APP_ID_ORCA:
+            // 看板:外框 + 三行状态(色点 + 横条),第一行用暖色表示"等你处理"
+            set_frame(0, 10, 12, 68, 62, color, 4);
+            set_part(1, 18, 24, 8, 8, warm);      // 色点
+            set_part(2, 30, 26, 40, 4, color);
+            set_part(3, 18, 40, 8, 8, detail);
+            set_part(4, 30, 42, 32, 4, color);
+            set_part(5, 18, 56, 8, 8, detail);
+            set_part(6, 30, 58, 24, 4, color);
+            break;
+        case APP_ID_AWAY:
+            // 空着的椅子 + 头顶的提醒点:你离席了,它在替你看着
+            set_part(0, 20, 18, 8, 40, color);     // 椅背
+            set_part(1, 20, 50, 48, 8, color);     // 坐面
+            set_part(2, 24, 58, 6, 18, color);     // 前腿
+            set_part(3, 58, 58, 6, 18, color);
+            set_part(4, 56, 14, 16, 16, warm);     // 提醒点
+            set_part(5, 62, 34, 4, 10, warm);
+            break;
         case APP_ID_WIFI:
             // 信号塔:四级阶梯(与其它图标的"方块"语言一致)
             set_part(0, 14, 56, 12, 18, color);
@@ -285,7 +296,8 @@ void update_card_content() {
     const passport_app_t *app = app_registry_get_by_index(s_selected_index);
     if (!app) return;
     lv_obj_set_style_text_font(s_app_title,
-        app->id == APP_ID_POMODORO ? &pomodoro_font_20 : &ui_font_20, 0);
+        app->id == APP_ID_POMODORO ? &pomodoro_font_20 :
+        app->id == APP_ID_AWAY ? &away_font_20 : &ui_font_20, 0);
     lv_label_set_text(s_app_title, app_chinese_name(app->id));
     lv_label_set_text_fmt(s_page_number, "%02u / %02u", (unsigned)s_selected_index + 1,
                           (unsigned)app_registry_get_count());

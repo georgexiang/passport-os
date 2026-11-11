@@ -73,6 +73,12 @@ idf_component_register(
         "apps/pomodoro/app_pomodoro.cc"
         "apps/pomodoro/pomodoro_font_20.c"
         "apps/pomodoro/pomodoro_digits_48.c"
+        "apps/orca/orca_core.c"
+        "apps/orca/app_orca.cc"
+        "apps/away/away_core.c"
+        "apps/link/link_ble.c"
+        "apps/away/app_away.cc"
+        "apps/away/away_font_20.c"
         "apps/game/tetris_core.c"
         "apps/game/app_tetris.cc"
     INCLUDE_DIRS
@@ -88,6 +94,7 @@ idf_component_register(
         "fonts"
     REQUIRES
         passport_muse
+        bt
         bsp
         esp-wifi-connect
         esp_wifi

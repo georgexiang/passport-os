@@ -25,6 +25,8 @@ LV_FONT_DECLARE(ui_font_20);
 LV_FONT_DECLARE(home_font_12);
 // Five additional 20px glyphs, with existing ui_font_20 as fallback.
 LV_FONT_DECLARE(pomodoro_font_20);
+// 「离席哨」启动器标题和应用横幅用的几个字(离席哨条询),其余回退到 ui_font_20。
+LV_FONT_DECLARE(away_font_20);
 // Digits and colon only: do not link the full Montserrat 48px repertoire.
 LV_FONT_DECLARE(pomodoro_digits_48);
 
